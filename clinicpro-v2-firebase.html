@@ -1,0 +1,1134 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ClinicPro v2 — Firebase</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://unpkg.com/localforage@1.10.0/dist/localforage.min.js"></script>
+<!-- FIREBASE SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --navy:#111827;--blue:#3B82F6;--blue-d:#1D4ED8;--blue-l:#EFF6FF;
+  --green:#10B981;--green-l:#ECFDF5;--amber:#F59E0B;--amber-l:#FFFBEB;
+  --red:#EF4444;--red-l:#FEF2F2;--purple:#8B5CF6;--purple-l:#F5F3FF;
+  --teal:#0EA5E9;--teal-l:#F0F9FF;
+  --bg:#F8FAFC;--surface:#fff;--border:#E2E8F0;--border2:#CBD5E1;
+  --t1:#0F172A;--t2:#475569;--t3:#94A3B8;--sw:248px;--hh:64px
+}
+body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--bg);color:var(--t1);min-height:100vh}
+.app{display:flex;min-height:100vh}
+/* SIDEBAR */
+.sidebar{width:var(--sw);background:var(--navy);min-height:100vh;position:fixed;left:0;top:0;display:flex;flex-direction:column;z-index:100}
+.sb-logo{padding:20px;border-bottom:1px solid rgba(255,255,255,.08)}
+.logo-t{font-size:20px;font-weight:800;color:#fff;letter-spacing:-.5px}
+.logo-badge{font-size:10px;background:var(--blue);color:#fff;padding:2px 7px;border-radius:4px;margin-left:6px;font-weight:700;vertical-align:middle}
+.logo-s{font-size:10px;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:1.5px;margin-top:2px}
+.sb-nav{flex:1;padding:14px 10px;overflow-y:auto}
+.nav-sec{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:rgba(255,255,255,.2);padding:8px 8px 5px;margin-bottom:2px;margin-top:8px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;cursor:pointer;transition:all .15s;margin-bottom:1px;font-size:13px;font-weight:500;color:rgba(255,255,255,.45)}
+.nav-item:hover{background:rgba(255,255,255,.06);color:rgba(255,255,255,.85)}
+.nav-item.active{background:var(--blue);color:#fff}
+.nav-item .nav-new{font-size:9px;background:var(--amber);color:#000;padding:1px 5px;border-radius:3px;font-weight:800;margin-left:auto}
+.sb-footer{padding:14px 10px;border-top:1px solid rgba(255,255,255,.08)}
+.sb-user{display:flex;align-items:center;gap:10px;padding:8px}
+.u-avatar{width:34px;height:34px;border-radius:50%;background:var(--blue);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0}
+.u-name{font-size:13px;font-weight:600;color:rgba(255,255,255,.8)}
+.u-role{font-size:11px;color:rgba(255,255,255,.3)}
+.sync-status{font-size:10px;padding:8px;text-align:center;border-top:1px solid rgba(255,255,255,.08)}
+.sync-dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:4px;background:var(--green);animation:pulse 2s infinite}
+.sync-dot.offline{background:var(--amber);animation:none}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+/* MAIN */
+.main{margin-left:var(--sw);flex:1;display:flex;flex-direction:column;min-width:0}
+.topbar{height:var(--hh);background:var(--surface);border-bottom:1px solid var(--border);padding:0 28px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;gap:16px}
+.pg-title{font-size:17px;font-weight:700;white-space:nowrap}
+.pg-sub{font-size:12px;color:var(--t2);margin-top:1px}
+.content{flex:1;padding:28px;overflow-y:auto}
+/* CARDS & STATS */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px}
+.stat-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.stat-lbl{font-size:12px;font-weight:500;color:var(--t2)}
+.stat-ico{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px}
+.stat-val{font-size:26px;font-weight:800;line-height:1;margin-bottom:3px}
+.stat-ch{font-size:11px;color:var(--t3)}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.card-hd{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.card-tt{font-size:14px;font-weight:700}
+.db-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;border:none;font-family:inherit;line-height:1}
+.btn-pr{background:var(--blue);color:#fff}.btn-pr:hover{background:var(--blue-d)}
+.btn-se{background:var(--bg);color:var(--t2);border:1px solid var(--border)}.btn-se:hover{border-color:var(--border2);background:#F1F5F9}
+.btn-gr{background:var(--green-l);color:#059669;border:1px solid #A7F3D0}.btn-gr:hover{background:#D1FAE5}
+.btn-da{background:var(--red-l);color:var(--red);border:1px solid #FCA5A5}
+.btn-wa{background:#25D366;color:#fff;border:none}.btn-wa:hover{background:#1ebe57}
+.btn-ic{padding:6px;border-radius:7px;background:transparent;color:var(--t2);border:1px solid var(--border);cursor:pointer;transition:all .15s;font-family:inherit;display:inline-flex;align-items:center;justify-content:center}.btn-ic:hover{background:var(--bg);border-color:var(--border2)}
+.btn-bk{background:var(--blue-l);color:var(--blue);border:1px solid #BFDBFE}.btn-bk:hover{background:#DBEAFE}
+/* FORM */
+.f-gr{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.f-lbl{display:block;font-size:12px;font-weight:600;color:var(--t1);margin-bottom:4px}
+.f-ctl{width:100%;padding:8px 11px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;color:var(--t1);background:#fff;transition:border-color .15s;outline:none}
+.f-ctl:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(59,130,246,.1)}
+textarea.f-ctl{resize:vertical;min-height:72px}
+select.f-ctl{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2394A3B8' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px}
+/* TABLE */
+.table{width:100%;border-collapse:collapse}
+.table th{padding:10px 16px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--t3);background:var(--bg);border-bottom:1px solid var(--border)}
+.table td{padding:12px 16px;font-size:13px;border-bottom:1px solid var(--border);vertical-align:middle}
+.table tr:last-child td{border-bottom:none}
+.table tbody tr:hover td{background:#F8FAFC}
+/* BADGES */
+.badge{display:inline-flex;align-items:center;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap}
+.bg{background:var(--green-l);color:#059669}.ba{background:var(--amber-l);color:#D97706}
+.br{background:var(--red-l);color:#DC2626}.bb{background:var(--blue-l);color:#2563EB}
+.bp{background:var(--purple-l);color:#7C3AED}.bk{background:#F1F5F9;color:var(--t2)}
+.bt{background:var(--teal-l);color:#0284C7}
+/* MISC */
+.filters-bar{display:flex;align-items:center;gap:10px;margin-bottom:18px;flex-wrap:wrap}
+.srch-wrap{position:relative}
+.srch-ico{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--t3);pointer-events:none}
+.srch-in{padding-left:32px;width:240px}
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:50px 20px;gap:8px}
+.empty-ico{font-size:36px}.empty-tt{font-size:14px;font-weight:600;color:var(--t2)}
+.empty-dc{font-size:12px;text-align:center;max-width:260px;line-height:1.5;color:var(--t3)}
+/* MODAL */
+.modal-ov{position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px}
+.modal{background:#fff;border-radius:16px;width:100%;max-width:600px;max-height:92vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+.modal-lg{max-width:800px}
+.modal-hd{padding:20px 22px 0;display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.modal-tt{font-size:16px;font-weight:700}
+.modal-cl{width:30px;height:30px;border-radius:7px;border:none;background:var(--bg);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--t2);font-size:18px;line-height:1;font-family:inherit}.modal-cl:hover{background:var(--border)}
+.modal-bd{padding:0 22px 22px}
+.modal-ft{padding:14px 22px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end}
+/* TOAST */
+.toast-ct{position:fixed;bottom:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.toast{background:var(--navy);color:#fff;padding:10px 14px;border-radius:10px;font-size:12px;font-weight:500;display:flex;align-items:center;gap:8px;box-shadow:0 4px 20px rgba(0,0,0,.2);animation:toastIn .2s ease;min-width:220px}
+.toast.success{border-left:3px solid var(--green)}.toast.error{border-left:3px solid var(--red)}.toast.info{border-left:3px solid var(--blue)}
+@keyframes toastIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+.loading{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;gap:12px}
+.loading-sp{width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.firebase-setup{padding:40px;text-align:center;max-width:500px}
+.setup-title{font-size:24px;font-weight:700;margin-bottom:12px}
+.setup-text{font-size:14px;color:var(--t2);margin-bottom:20px;line-height:1.6}
+.setup-code{background:var(--bg);padding:20px;border-radius:8px;border:1px solid var(--border);margin-bottom:20px;text-align:left;font-family:monospace;font-size:12px;overflow-x:auto}
+.bk-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:18px}
+.bk-tt{font-size:14px;font-weight:700;margin-bottom:8px}
+.bk-dc{font-size:12px;color:var(--t2);margin-bottom:12px;line-height:1.5}
+.bk-btns{display:flex;gap:10px;flex-wrap:wrap}
+/* AGENDA */
+.appt-item{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border);transition:background .1s}
+.appt-item:last-child{border-bottom:none}.appt-item:hover{background:var(--bg)}
+.appt-time{font-size:12px;font-weight:700;color:var(--blue);min-width:44px}
+.appt-nm{font-size:13px;font-weight:600}.appt-tp{font-size:11px;color:var(--t3);margin-top:1px}
+.date-tabs{display:flex;gap:6px;margin-bottom:18px;overflow-x:auto;padding-bottom:4px}
+.date-tab{display:flex;flex-direction:column;align-items:center;padding:9px 12px;border-radius:10px;cursor:pointer;border:1px solid var(--border);background:#fff;transition:all .15s;min-width:56px}
+.date-tab:hover{border-color:var(--blue)}.date-tab.active{background:var(--blue);border-color:var(--blue);color:#fff}
+.dt-day{font-size:9px;font-weight:700;text-transform:uppercase;opacity:.55}
+.dt-num{font-size:15px;font-weight:800}.dt-mon{font-size:9px;font-weight:500}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const{useState,useEffect,useRef,useCallback}=React;
+
+// ── ÍCONES ──
+const I={
+  dash:'📊',pats:'👥',cal:'📅',pront:'📋',file:'📄',hist:'⏱',fin:'💰',
+  bkup:'💾',add:'➕',edt:'✏️',del:'🗑',close:'✕',chk:'✓',sav:'💾'
+};
+
+// ── FIREBASE CONFIG ──
+const firebaseConfig={
+  apiKey:"AIzaSyAMzWGoXw9xOcN-1QRrX1mozxtMqrmFoHM",
+  authDomain:"clinica-1df05.firebaseapp.com",
+  projectId:"clinica-1df05",
+  storageBucket:"clinica-1df05.firebasestorage.app",
+  messagingSenderId:"892506337986",
+  appId:"1:892506337986:web:1a45be0b3b2d3bc358815b"
+};
+
+let db=null;
+let fbReady=false;
+let fbError=null;
+
+// Firebase será inicializado quando os dados forem salvos
+// Por enquanto, apenas localStorage é usado (offline-first)
+
+// ── TOAST ──
+const useToast=()=>{
+  const[ts,setTs]=useState([]);
+  const add=useCallback((msg,type='info',dur=3000)=>{
+    const id=Date.now();
+    setTs(p=>[...p,{id,msg,type}]);
+    setTimeout(()=>setTs(p=>p.filter(t=>t.id!==id)),dur);
+  },[]);
+  return{add,ts};
+};
+
+const Toast=({ts})=>(
+  <div className="toast-ct">
+    {ts.map(({id,msg,type})=>(
+      <div key={id} className={`toast ${type}`}>
+        {type==='success'&&'✓ '}{type==='error'&&'✗ '}{msg}
+      </div>
+    ))}
+  </div>
+);
+
+// ── FIREBASE UTILS ──
+const fbOps={
+  async read(col){
+    if(!db) return[];
+    try{
+      const{collection,getDocs}=window.firebase.firestore;
+      const snap=await getDocs(collection(db,col));
+      return snap.docs.map(d=>({id:d.id,...d.data()}));
+    }catch(e){
+      console.error(`Erro ao ler ${col}:`,e);
+      return[];
+    }
+  },
+  async create(col,data){
+    if(!db) throw new Error('Firebase não inicializado');
+    const{collection,addDoc}=window.firebase.firestore;
+    const ref=await addDoc(collection(db,col),{...data,createdAt:new Date()});
+    return{id:ref.id,...data};
+  },
+  async update(col,id,data){
+    if(!db) throw new Error('Firebase não inicializado');
+    const{doc,updateDoc}=window.firebase.firestore;
+    await updateDoc(doc(db,col,id),{...data,updatedAt:new Date()});
+  },
+  async delete(col,id){
+    if(!db) throw new Error('Firebase não inicializado');
+    const{doc,deleteDoc}=window.firebase.firestore;
+    await deleteDoc(doc(db,col,id));
+  }
+};
+
+// ── HOOK SYNC FIREBASE + LOCAL ──
+const useFirebaseDB=(collection,seedData)=>{
+  const[data,setData]=useState(seedData||[]);
+  const[loading,setLoading]=useState(true);
+  const[online,setOnline]=useState(navigator.onLine);
+  const localKey=`clinicpro_${collection}`;
+
+  // Carregar dados (Firebase ou Local)
+  useEffect(()=>{
+    (async()=>{
+      try{
+        if(fbReady&&navigator.onLine){
+          const fbData=await fbOps.read(collection);
+          setData(fbData||seedData||[]);
+          localStorage.setItem(localKey,JSON.stringify(fbData||seedData||[]));
+        }else{
+          const cached=localStorage.getItem(localKey);
+          setData(cached?JSON.parse(cached):seedData||[]);
+        }
+      }catch(e){
+        console.error('Erro ao carregar:',e);
+        const cached=localStorage.getItem(localKey);
+        setData(cached?JSON.parse(cached):seedData||[]);
+      }finally{
+        setLoading(false);
+      }
+    })();
+  },[collection]);
+
+  // Detectar online/offline
+  useEffect(()=>{
+    window.addEventListener('online',()=>setOnline(true));
+    window.addEventListener('offline',()=>setOnline(false));
+    return()=>{
+      window.removeEventListener('online',()=>setOnline(true));
+      window.removeEventListener('offline',()=>setOnline(false));
+    };
+  },[]);
+
+  // Função de SET que sincroniza
+  const setDataWithSync=useCallback(async(newData)=>{
+    setData(newData);
+    localStorage.setItem(localKey,JSON.stringify(newData));
+    
+    if(fbReady&&navigator.onLine){
+      // Sincronizar cada item com Firebase
+      for(const item of newData){
+        try{
+          if(item.id&&item.id.length>20){
+            // ID de Firebase
+            await fbOps.update(collection,item.id,item);
+          }else if(!item.id){
+            // Novo item
+            await fbOps.create(collection,item);
+          }
+        }catch(e){
+          console.error('Erro ao sincronizar:',e);
+        }
+      }
+    }
+  },[collection]);
+
+  return[data,setDataWithSync,!loading,online];
+};
+
+// ── SEEDING ──
+const SEED_PACS=[
+  {id:'pac_1',nome:'João Silva',cpf:'123.456.789-00',tel:'(92)99999-1111',email:'joao@mail.com',dt_nasc:'1990-05-15',sexo:'M',endereco:'Rua A, 100',cidade:'Manaus',estado:'AM'},
+  {id:'pac_2',nome:'Maria Santos',cpf:'987.654.321-00',tel:'(92)98888-2222',email:'maria@mail.com',dt_nasc:'1985-08-22',sexo:'F',endereco:'Rua B, 200',cidade:'Manaus',estado:'AM'},
+];
+
+const SEED_APPTS=[
+  {id:'apt_1',paciente_id:'pac_1',data:'2024-01-15',hora:'09:00',tipo:'Consulta Geral',status:'confirmado'},
+  {id:'apt_2',paciente_id:'pac_2',data:'2024-01-15',hora:'10:30',tipo:'Retorno',status:'confirmado'},
+];
+
+const SEED_PRONT=[
+  {id:'pront_1',paciente_id:'pac_1',data:'2024-01-15',queixa:'Dor de cabeça',diagnostico:'Cefaleia tensional',prescricao:'Dipirona 500mg',status:'concluído'},
+];
+
+const SEED_LAUDOS=[
+  {id:'laud_1',paciente_id:'pac_1',tipo:'Hemograma',resultado:'Normal',data:'2024-01-10'},
+];
+
+const SEED_FIN=[
+  {id:'fin_1',tipo:'receita',descricao:'Consulta',valor:150.00,data:'2024-01-15',status:'recebido'},
+];
+
+// ── COMPONENTES ──
+
+const Dashboard=({pacs,appts,laudos,pronts,fins,online})=>{
+  const totalRec=fins.filter(f=>f.tipo==='receita').reduce((a,b)=>a+parseFloat(b.valor||0),0);
+  return(
+    <div>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:14,marginBottom:24}}>
+        {[['👥','Pacientes',pacs.length],['📅','Agendamentos',appts.length],['📋','Prontuários',pronts.length],['📄','Laudos',laudos.length]].map(([ico,lbl,val])=>(
+          <div key={lbl} className="stat-card">
+            <div className="stat-hd"><span className="stat-lbl">{lbl}</span><span style={{fontSize:18}}>{ico}</span></div>
+            <div className="stat-val">{val}</div>
+            <div className="stat-ch">registros</div>
+          </div>
+        ))}
+      </div>
+      <div className="card">
+        <div className="card-hd"><div className="card-tt">💰 Receita Total</div></div>
+        <div style={{padding:20}}>
+          <div style={{fontSize:32,fontWeight:800,color:'var(--green)'}}>R$ {totalRec.toFixed(2)}</div>
+          <div style={{fontSize:12,color:'var(--t3)',marginTop:4}}>Período atual</div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const PacsView=({pacs,setPacs,toast})=>{
+  const[modal,setModal]=useState(null);
+  const[form,setForm]=useState({nome:'',cpf:'',tel:'',email:'',dt_nasc:'',sexo:'M',endereco:'',cidade:'',estado:'AM'});
+
+  const add=async()=>{
+    if(!form.nome||!form.cpf){toast.add('Preencha nome e CPF','error');return;}
+    try{
+      setPacs([...pacs,{id:'pac_'+Date.now(),createdAt:new Date(),...form}]);
+      setForm({nome:'',cpf:'',tel:'',email:'',dt_nasc:'',sexo:'M',endereco:'',cidade:'',estado:'AM'});
+      setModal(null);
+      toast.add('Paciente adicionado','success');
+    }catch(e){
+      toast.add('Erro ao adicionar','error');
+    }
+  };
+
+  const edt=(p)=>{
+    setForm(p);
+    setModal('edit');
+  };
+
+  const upd=async()=>{
+    try{
+      setPacs(pacs.map(p=>p.id===form.id?form:p));
+      setModal(null);
+      toast.add('Paciente atualizado','success');
+    }catch(e){
+      toast.add('Erro ao atualizar','error');
+    }
+  };
+
+  const del=async(id)=>{
+    if(window.confirm('Tem certeza?')){
+      try{
+        setPacs(pacs.filter(p=>p.id!==id));
+        toast.add('Paciente removido','success');
+      }catch(e){
+        toast.add('Erro ao remover','error');
+      }
+    }
+  };
+
+  return(
+    <div>
+      <div style={{marginBottom:18}}>
+        <button className="btn btn-pr" onClick={()=>{setForm({nome:'',cpf:'',tel:'',email:'',dt_nasc:'',sexo:'M',endereco:'',cidade:'',estado:'AM'});setModal('add')}}>{I.add} Novo Paciente</button>
+      </div>
+      {pacs.length===0?(
+        <div className="empty">
+          <div className="empty-ico">👥</div>
+          <div className="empty-tt">Sem pacientes</div>
+          <div className="empty-dc">Adicione seu primeiro paciente para começar</div>
+        </div>
+      ):(
+        <div className="card">
+          <table className="table">
+            <thead><tr><th>Nome</th><th>CPF</th><th>Telefone</th><th>Email</th><th style={{textAlign:'right'}}>Ações</th></tr></thead>
+            <tbody>
+              {pacs.map(p=>(
+                <tr key={p.id}>
+                  <td>{p.nome}</td>
+                  <td>{p.cpf}</td>
+                  <td>{p.tel}</td>
+                  <td>{p.email}</td>
+                  <td style={{textAlign:'right'}}>
+                    <button className="btn-ic" onClick={()=>edt(p)} title="Editar">{I.edt}</button>
+                    <button className="btn-ic" onClick={()=>del(p.id)} title="Deletar">{I.del}</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {modal&&(
+        <div className="modal-ov">
+          <div className="modal">
+            <div className="modal-hd">
+              <div className="modal-tt">{modal==='add'?'Novo Paciente':'Editar Paciente'}</div>
+              <button className="modal-cl" onClick={()=>setModal(null)}>{I.close}</button>
+            </div>
+            <div className="modal-bd">
+              <label className="f-lbl">Nome *</label>
+              <input className="f-ctl" type="text" value={form.nome} onChange={e=>setForm({...form,nome:e.target.value})} placeholder="João Silva"/>
+              <div className="f-gr">
+                <div>
+                  <label className="f-lbl">CPF *</label>
+                  <input className="f-ctl" type="text" value={form.cpf} onChange={e=>setForm({...form,cpf:e.target.value})} placeholder="000.000.000-00"/>
+                </div>
+                <div>
+                  <label className="f-lbl">Telefone</label>
+                  <input className="f-ctl" type="text" value={form.tel} onChange={e=>setForm({...form,tel:e.target.value})} placeholder="(92)99999-0000"/>
+                </div>
+              </div>
+              <label className="f-lbl">Email</label>
+              <input className="f-ctl" type="email" value={form.email} onChange={e=>setForm({...form,email:e.target.value})} placeholder="email@mail.com"/>
+              <div className="f-gr">
+                <div>
+                  <label className="f-lbl">Data Nascimento</label>
+                  <input className="f-ctl" type="date" value={form.dt_nasc} onChange={e=>setForm({...form,dt_nasc:e.target.value})}/>
+                </div>
+                <div>
+                  <label className="f-lbl">Sexo</label>
+                  <select className="f-ctl" value={form.sexo} onChange={e=>setForm({...form,sexo:e.target.value})}>
+                    <option value="M">Masculino</option>
+                    <option value="F">Feminino</option>
+                    <option value="O">Outro</option>
+                  </select>
+                </div>
+              </div>
+              <label className="f-lbl">Endereço</label>
+              <input className="f-ctl" type="text" value={form.endereco} onChange={e=>setForm({...form,endereco:e.target.value})} placeholder="Rua A, 100"/>
+              <div className="f-gr">
+                <div>
+                  <label className="f-lbl">Cidade</label>
+                  <input className="f-ctl" type="text" value={form.cidade} onChange={e=>setForm({...form,cidade:e.target.value})} placeholder="Manaus"/>
+                </div>
+                <div>
+                  <label className="f-lbl">Estado</label>
+                  <select className="f-ctl" value={form.estado} onChange={e=>setForm({...form,estado:e.target.value})}>
+                    <option value="AM">AM</option><option value="SP">SP</option><option value="RJ">RJ</option><option value="MG">MG</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div className="modal-ft">
+              <button className="btn btn-se" onClick={()=>setModal(null)}>Cancelar</button>
+              <button className="btn btn-pr" onClick={modal==='add'?add:upd}>{I.sav} Salvar</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const AgtsView=({pacs,appts,setAppts,toast})=>{
+  const[modal,setModal]=useState(null);
+  const[form,setForm]=useState({paciente_id:'',data:'',hora:'',tipo:'Consulta Geral',status:'confirmado'});
+
+  const add=async()=>{
+    if(!form.paciente_id||!form.data||!form.hora){toast.add('Preencha os campos obrigatórios','error');return;}
+    try{
+      setAppts([...appts,{id:'apt_'+Date.now(),createdAt:new Date(),...form}]);
+      setForm({paciente_id:'',data:'',hora:'',tipo:'Consulta Geral',status:'confirmado'});
+      setModal(null);
+      toast.add('Agendamento criado','success');
+    }catch(e){
+      toast.add('Erro ao criar','error');
+    }
+  };
+
+  const del=async(id)=>{
+    if(window.confirm('Tem certeza?')){
+      try{
+        setAppts(appts.filter(a=>a.id!==id));
+        toast.add('Agendamento removido','success');
+      }catch(e){
+        toast.add('Erro ao remover','error');
+      }
+    }
+  };
+
+  return(
+    <div>
+      <div style={{marginBottom:18}}>
+        <button className="btn btn-pr" onClick={()=>{setForm({paciente_id:'',data:'',hora:'',tipo:'Consulta Geral',status:'confirmado'});setModal('add')}}>{I.add} Novo Agendamento</button>
+      </div>
+      {appts.length===0?(
+        <div className="empty">
+          <div className="empty-ico">📅</div>
+          <div className="empty-tt">Sem agendamentos</div>
+          <div className="empty-dc">Agende consultas para seus pacientes</div>
+        </div>
+      ):(
+        <div className="card">
+          <table className="table">
+            <thead><tr><th>Paciente</th><th>Data</th><th>Hora</th><th>Tipo</th><th>Status</th><th style={{textAlign:'right'}}>Ações</th></tr></thead>
+            <tbody>
+              {appts.map(a=>(
+                <tr key={a.id}>
+                  <td>{pacs.find(p=>p.id===a.paciente_id)?.nome||'—'}</td>
+                  <td>{new Date(a.data).toLocaleDateString('pt-BR')}</td>
+                  <td>{a.hora}</td>
+                  <td>{a.tipo}</td>
+                  <td><span className={`badge ${a.status==='confirmado'?'bg':'ba'}`}>{a.status}</span></td>
+                  <td style={{textAlign:'right'}}>
+                    <button className="btn-ic" onClick={()=>del(a.id)} title="Deletar">{I.del}</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {modal&&(
+        <div className="modal-ov">
+          <div className="modal">
+            <div className="modal-hd">
+              <div className="modal-tt">Novo Agendamento</div>
+              <button className="modal-cl" onClick={()=>setModal(null)}>{I.close}</button>
+            </div>
+            <div className="modal-bd">
+              <label className="f-lbl">Paciente *</label>
+              <select className="f-ctl" value={form.paciente_id} onChange={e=>setForm({...form,paciente_id:e.target.value})}>
+                <option value="">Selecione um paciente</option>
+                {pacs.map(p=><option key={p.id} value={p.id}>{p.nome}</option>)}
+              </select>
+              <div className="f-gr">
+                <div>
+                  <label className="f-lbl">Data *</label>
+                  <input className="f-ctl" type="date" value={form.data} onChange={e=>setForm({...form,data:e.target.value})}/>
+                </div>
+                <div>
+                  <label className="f-lbl">Hora *</label>
+                  <input className="f-ctl" type="time" value={form.hora} onChange={e=>setForm({...form,hora:e.target.value})}/>
+                </div>
+              </div>
+              <label className="f-lbl">Tipo</label>
+              <select className="f-ctl" value={form.tipo} onChange={e=>setForm({...form,tipo:e.target.value})}>
+                <option value="Consulta Geral">Consulta Geral</option>
+                <option value="Retorno">Retorno</option>
+                <option value="Urgência">Urgência</option>
+              </select>
+              <label className="f-lbl">Status</label>
+              <select className="f-ctl" value={form.status} onChange={e=>setForm({...form,status:e.target.value})}>
+                <option value="confirmado">Confirmado</option>
+                <option value="pendente">Pendente</option>
+                <option value="cancelado">Cancelado</option>
+              </select>
+            </div>
+            <div className="modal-ft">
+              <button className="btn btn-se" onClick={()=>setModal(null)}>Cancelar</button>
+              <button className="btn btn-pr" onClick={add}>{I.sav} Salvar</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const ProntuarioView=({pacs,pronts,setPronts,toast})=>{
+  const[modal,setModal]=useState(null);
+  const[form,setForm]=useState({paciente_id:'',data:new Date().toISOString().split('T')[0],queixa:'',diagnostico:'',prescricao:'',status:'concluído'});
+
+  const add=async()=>{
+    if(!form.paciente_id||!form.queixa){toast.add('Preencha paciente e queixa','error');return;}
+    try{
+      setPronts([...pronts,{id:'pront_'+Date.now(),createdAt:new Date(),...form}]);
+      setForm({paciente_id:'',data:new Date().toISOString().split('T')[0],queixa:'',diagnostico:'',prescricao:'',status:'concluído'});
+      setModal(null);
+      toast.add('Prontuário criado','success');
+    }catch(e){
+      toast.add('Erro','error');
+    }
+  };
+
+  const del=async(id)=>{
+    if(window.confirm('Tem certeza?')){
+      try{
+        setPronts(pronts.filter(p=>p.id!==id));
+        toast.add('Prontuário removido','success');
+      }catch(e){
+        toast.add('Erro','error');
+      }
+    }
+  };
+
+  return(
+    <div>
+      <div style={{marginBottom:18}}>
+        <button className="btn btn-pr" onClick={()=>{setForm({paciente_id:'',data:new Date().toISOString().split('T')[0],queixa:'',diagnostico:'',prescricao:'',status:'concluído'});setModal('add')}}>{I.add} Novo Prontuário</button>
+      </div>
+      {pronts.length===0?(
+        <div className="empty">
+          <div className="empty-ico">📋</div>
+          <div className="empty-tt">Sem prontuários</div>
+          <div className="empty-dc">Crie prontuários para seus pacientes</div>
+        </div>
+      ):(
+        <div className="card">
+          <table className="table">
+            <thead><tr><th>Paciente</th><th>Data</th><th>Queixa</th><th>Diagnóstico</th><th style={{textAlign:'right'}}>Ações</th></tr></thead>
+            <tbody>
+              {pronts.map(p=>(
+                <tr key={p.id}>
+                  <td>{pacs.find(x=>x.id===p.paciente_id)?.nome||'—'}</td>
+                  <td>{new Date(p.data).toLocaleDateString('pt-BR')}</td>
+                  <td>{p.queixa}</td>
+                  <td>{p.diagnostico}</td>
+                  <td style={{textAlign:'right'}}>
+                    <button className="btn-ic" onClick={()=>del(p.id)} title="Deletar">{I.del}</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {modal&&(
+        <div className="modal-ov">
+          <div className="modal modal-lg">
+            <div className="modal-hd">
+              <div className="modal-tt">Novo Prontuário</div>
+              <button className="modal-cl" onClick={()=>setModal(null)}>{I.close}</button>
+            </div>
+            <div className="modal-bd">
+              <label className="f-lbl">Paciente *</label>
+              <select className="f-ctl" value={form.paciente_id} onChange={e=>setForm({...form,paciente_id:e.target.value})}>
+                <option value="">Selecione um paciente</option>
+                {pacs.map(p=><option key={p.id} value={p.id}>{p.nome}</option>)}
+              </select>
+              <div className="f-gr">
+                <div>
+                  <label className="f-lbl">Data</label>
+                  <input className="f-ctl" type="date" value={form.data} onChange={e=>setForm({...form,data:e.target.value})}/>
+                </div>
+              </div>
+              <label className="f-lbl">Queixa Principal *</label>
+              <input className="f-ctl" type="text" value={form.queixa} onChange={e=>setForm({...form,queixa:e.target.value})} placeholder="Dor de cabeça, febre, etc"/>
+              <label className="f-lbl">Diagnóstico</label>
+              <textarea className="f-ctl" value={form.diagnostico} onChange={e=>setForm({...form,diagnostico:e.target.value})} placeholder="Diagnóstico clínico"/>
+              <label className="f-lbl">Prescrição</label>
+              <textarea className="f-ctl" value={form.prescricao} onChange={e=>setForm({...form,prescricao:e.target.value})} placeholder="Medicamentos e orientações"/>
+            </div>
+            <div className="modal-ft">
+              <button className="btn btn-se" onClick={()=>setModal(null)}>Cancelar</button>
+              <button className="btn btn-pr" onClick={add}>{I.sav} Salvar</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const LaudosView=({pacs,laudos,setLaudos,toast})=>{
+  const[modal,setModal]=useState(null);
+  const[form,setForm]=useState({paciente_id:'',tipo:'Hemograma',resultado:'',data:new Date().toISOString().split('T')[0]});
+
+  const add=async()=>{
+    if(!form.paciente_id||!form.tipo){toast.add('Preencha paciente e tipo','error');return;}
+    try{
+      setLaudos([...laudos,{id:'laud_'+Date.now(),createdAt:new Date(),...form}]);
+      setForm({paciente_id:'',tipo:'Hemograma',resultado:'',data:new Date().toISOString().split('T')[0]});
+      setModal(null);
+      toast.add('Laudo criado','success');
+    }catch(e){
+      toast.add('Erro','error');
+    }
+  };
+
+  const del=async(id)=>{
+    if(window.confirm('Tem certeza?')){
+      try{
+        setLaudos(laudos.filter(l=>l.id!==id));
+        toast.add('Laudo removido','success');
+      }catch(e){
+        toast.add('Erro','error');
+      }
+    }
+  };
+
+  return(
+    <div>
+      <div style={{marginBottom:18}}>
+        <button className="btn btn-pr" onClick={()=>{setForm({paciente_id:'',tipo:'Hemograma',resultado:'',data:new Date().toISOString().split('T')[0]});setModal('add')}}>{I.add} Novo Laudo</button>
+      </div>
+      {laudos.length===0?(
+        <div className="empty">
+          <div className="empty-ico">📄</div>
+          <div className="empty-tt">Sem laudos</div>
+          <div className="empty-dc">Adicione laudos e exames de seus pacientes</div>
+        </div>
+      ):(
+        <div className="card">
+          <table className="table">
+            <thead><tr><th>Paciente</th><th>Tipo</th><th>Resultado</th><th>Data</th><th style={{textAlign:'right'}}>Ações</th></tr></thead>
+            <tbody>
+              {laudos.map(l=>(
+                <tr key={l.id}>
+                  <td>{pacs.find(p=>p.id===l.paciente_id)?.nome||'—'}</td>
+                  <td>{l.tipo}</td>
+                  <td>{l.resultado}</td>
+                  <td>{new Date(l.data).toLocaleDateString('pt-BR')}</td>
+                  <td style={{textAlign:'right'}}>
+                    <button className="btn-ic" onClick={()=>del(l.id)} title="Deletar">{I.del}</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {modal&&(
+        <div className="modal-ov">
+          <div className="modal">
+            <div className="modal-hd">
+              <div className="modal-tt">Novo Laudo</div>
+              <button className="modal-cl" onClick={()=>setModal(null)}>{I.close}</button>
+            </div>
+            <div className="modal-bd">
+              <label className="f-lbl">Paciente *</label>
+              <select className="f-ctl" value={form.paciente_id} onChange={e=>setForm({...form,paciente_id:e.target.value})}>
+                <option value="">Selecione um paciente</option>
+                {pacs.map(p=><option key={p.id} value={p.id}>{p.nome}</option>)}
+              </select>
+              <div className="f-gr">
+                <div>
+                  <label className="f-lbl">Tipo de Exame *</label>
+                  <input className="f-ctl" type="text" value={form.tipo} onChange={e=>setForm({...form,tipo:e.target.value})} placeholder="Hemograma, Glicemia, etc"/>
+                </div>
+                <div>
+                  <label className="f-lbl">Data</label>
+                  <input className="f-ctl" type="date" value={form.data} onChange={e=>setForm({...form,data:e.target.value})}/>
+                </div>
+              </div>
+              <label className="f-lbl">Resultado</label>
+              <textarea className="f-ctl" value={form.resultado} onChange={e=>setForm({...form,resultado:e.target.value})} placeholder="Resultado do exame"/>
+            </div>
+            <div className="modal-ft">
+              <button className="btn btn-se" onClick={()=>setModal(null)}>Cancelar</button>
+              <button className="btn btn-pr" onClick={add}>{I.sav} Salvar</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const HistView=({pacs,appts,laudos,pronts})=>{
+  const[filtro,setFiltro]=useState('');
+  const pacFilt=filtro?pacs.find(p=>p.id===filtro):null;
+
+  if(!pacFilt&&filtro) return<div className="empty"><div className="empty-ico">❓</div><div className="empty-tt">Paciente não encontrado</div></div>;
+
+  const eventos=[];
+  if(pacFilt){
+    appts.filter(a=>a.paciente_id===filtro).forEach(a=>eventos.push({tipo:'Agendamento',data:a.data,descr:`${a.tipo} às ${a.hora}`,ico:'📅'}));
+    pronts.filter(p=>p.paciente_id===filtro).forEach(p=>eventos.push({tipo:'Prontuário',data:p.data,descr:p.queixa,ico:'📋'}));
+    laudos.filter(l=>l.paciente_id===filtro).forEach(l=>eventos.push({tipo:'Laudo',data:l.data,descr:l.tipo,ico:'📄'}));
+  }
+
+  eventos.sort((a,b)=>new Date(b.data)-new Date(a.data));
+
+  return(
+    <div>
+      <label className="f-lbl" style={{marginBottom:12}}>Selecione um paciente</label>
+      <select className="f-ctl" style={{marginBottom:20}} value={filtro} onChange={e=>setFiltro(e.target.value)}>
+        <option value="">Todos os pacientes</option>
+        {pacs.map(p=><option key={p.id} value={p.id}>{p.nome}</option>)}
+      </select>
+      {eventos.length===0?(
+        <div className="empty">
+          <div className="empty-ico">📜</div>
+          <div className="empty-tt">Sem histórico</div>
+          <div className="empty-dc">{filtro?'Este paciente não possui registros':'Selecione um paciente'}</div>
+        </div>
+      ):(
+        <div className="card">
+          {eventos.map((e,i)=>(
+            <div key={i} className="appt-item">
+              <span style={{fontSize:18}}>{e.ico}</span>
+              <div style={{flex:1}}>
+                <div className="appt-nm">{e.tipo}</div>
+                <div className="appt-tp">{e.descr}</div>
+              </div>
+              <span className="appt-time">{new Date(e.data).toLocaleDateString('pt-BR')}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const FinanceiroView=({pacs,fins,setFins,toast})=>{
+  const[modal,setModal]=useState(null);
+  const[form,setForm]=useState({tipo:'receita',descricao:'',valor:'',data:new Date().toISOString().split('T')[0],status:'recebido'});
+
+  const add=async()=>{
+    if(!form.descricao||!form.valor){toast.add('Preencha descrição e valor','error');return;}
+    try{
+      setFins([...fins,{id:'fin_'+Date.now(),createdAt:new Date(),...form,valor:parseFloat(form.valor)}]);
+      setForm({tipo:'receita',descricao:'',valor:'',data:new Date().toISOString().split('T')[0],status:'recebido'});
+      setModal(null);
+      toast.add('Registro criado','success');
+    }catch(e){
+      toast.add('Erro','error');
+    }
+  };
+
+  const del=async(id)=>{
+    if(window.confirm('Tem certeza?')){
+      try{
+        setFins(fins.filter(f=>f.id!==id));
+        toast.add('Registro removido','success');
+      }catch(e){
+        toast.add('Erro','error');
+      }
+    }
+  };
+
+  const totalRec=fins.filter(f=>f.tipo==='receita').reduce((a,b)=>a+parseFloat(b.valor||0),0);
+  const totalDesp=fins.filter(f=>f.tipo==='despesa').reduce((a,b)=>a+parseFloat(b.valor||0),0);
+
+  return(
+    <div>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:14,marginBottom:24}}>
+        <div className="stat-card">
+          <div className="stat-hd"><span className="stat-lbl">Receitas</span><span style={{fontSize:18}}>📈</span></div>
+          <div className="stat-val" style={{color:'var(--green)'}}>R$ {totalRec.toFixed(2)}</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-hd"><span className="stat-lbl">Despesas</span><span style={{fontSize:18}}>📉</span></div>
+          <div className="stat-val" style={{color:'var(--red)'}}>R$ {totalDesp.toFixed(2)}</div>
+        </div>
+      </div>
+      <div style={{marginBottom:18}}>
+        <button className="btn btn-pr" onClick={()=>{setForm({tipo:'receita',descricao:'',valor:'',data:new Date().toISOString().split('T')[0],status:'recebido'});setModal('add')}}>{I.add} Novo Registro</button>
+      </div>
+      {fins.length===0?(
+        <div className="empty">
+          <div className="empty-ico">💰</div>
+          <div className="empty-tt">Sem registros</div>
+          <div className="empty-dc">Adicione receitas e despesas</div>
+        </div>
+      ):(
+        <div className="card">
+          <table className="table">
+            <thead><tr><th>Tipo</th><th>Descrição</th><th>Valor</th><th>Data</th><th>Status</th><th style={{textAlign:'right'}}>Ações</th></tr></thead>
+            <tbody>
+              {fins.map(f=>(
+                <tr key={f.id}>
+                  <td><span className={`badge ${f.tipo==='receita'?'bg':'br'}`}>{f.tipo}</span></td>
+                  <td>{f.descricao}</td>
+                  <td style={{fontWeight:600,color:f.tipo==='receita'?'var(--green)':'var(--red)'}}>R$ {parseFloat(f.valor||0).toFixed(2)}</td>
+                  <td>{new Date(f.data).toLocaleDateString('pt-BR')}</td>
+                  <td><span className={`badge ${f.status==='recebido'?'bg':'ba'}`}>{f.status}</span></td>
+                  <td style={{textAlign:'right'}}>
+                    <button className="btn-ic" onClick={()=>del(f.id)} title="Deletar">{I.del}</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {modal&&(
+        <div className="modal-ov">
+          <div className="modal">
+            <div className="modal-hd">
+              <div className="modal-tt">Novo Registro Financeiro</div>
+              <button className="modal-cl" onClick={()=>setModal(null)}>{I.close}</button>
+            </div>
+            <div className="modal-bd">
+              <label className="f-lbl">Tipo *</label>
+              <select className="f-ctl" value={form.tipo} onChange={e=>setForm({...form,tipo:e.target.value})}>
+                <option value="receita">Receita</option>
+                <option value="despesa">Despesa</option>
+              </select>
+              <label className="f-lbl">Descrição *</label>
+              <input className="f-ctl" type="text" value={form.descricao} onChange={e=>setForm({...form,descricao:e.target.value})} placeholder="Consulta, medicamento, etc"/>
+              <div className="f-gr">
+                <div>
+                  <label className="f-lbl">Valor (R$) *</label>
+                  <input className="f-ctl" type="number" step="0.01" value={form.valor} onChange={e=>setForm({...form,valor:e.target.value})} placeholder="0.00"/>
+                </div>
+                <div>
+                  <label className="f-lbl">Data</label>
+                  <input className="f-ctl" type="date" value={form.data} onChange={e=>setForm({...form,data:e.target.value})}/>
+                </div>
+              </div>
+              <label className="f-lbl">Status</label>
+              <select className="f-ctl" value={form.status} onChange={e=>setForm({...form,status:e.target.value})}>
+                <option value="recebido">Recebido</option>
+                <option value="pendente">Pendente</option>
+              </select>
+            </div>
+            <div className="modal-ft">
+              <button className="btn btn-se" onClick={()=>setModal(null)}>Cancelar</button>
+              <button className="btn btn-pr" onClick={add}>{I.sav} Salvar</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const BackupView=({pacs,appts,laudos,pronts,fins,setPacs,setAppts,setLaudos,setPronts,setFins,toast})=>{
+  const exportar=()=>{
+    const data={pacs,appts,laudos,pronts,fins,exportedAt:new Date().toISOString()};
+    const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download=`clinicpro_backup_${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    toast.add('Backup exportado','success');
+  };
+
+  const importar=(e)=>{
+    const file=e.target.files[0];
+    if(!file) return;
+    const reader=new FileReader();
+    reader.onload=async(evt)=>{
+      try{
+        const backup=JSON.parse(evt.target.result);
+        setPacs(backup.pacs||[]);
+        setAppts(backup.appts||[]);
+        setLaudos(backup.laudos||[]);
+        setPronts(backup.pronts||[]);
+        setFins(backup.fins||[]);
+        toast.add('Backup restaurado','success');
+      }catch(err){
+        toast.add('Erro ao restaurar backup','error');
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const limpar=()=>{
+    if(window.confirm('⚠️ Isso vai apagar TODOS os dados. Exporte um backup primeiro!\n\nTem certeza?')){
+      setPacs([]);
+      setAppts([]);
+      setLaudos([]);
+      setPronts([]);
+      setFins([]);
+      localStorage.clear();
+      toast.add('Todos os dados foram apagados','success');
+    }
+  };
+
+  return(
+    <div>
+      <div className="bk-card">
+        <div className="bk-tt">☁️ Sincronização Firebase</div>
+        <div className="bk-dc">Seus dados estão sincronizados em tempo real com o Firebase Firestore. Você pode acessar de qualquer dispositivo. {fbReady?'<strong>Firebase está ativo</strong>':'<strong style="color:var(--red)">Firebase não está configurado</strong>'}</div>
+      </div>
+      <div className="bk-card">
+        <div className="bk-tt">💾 Backup Local</div>
+        <div className="bk-dc">Faça backups regulares (.json) para manter uma cópia dos seus dados independente da nuvem.</div>
+        <div className="bk-btns">
+          <button className="btn btn-bk" onClick={exportar}>{I.bkup} Exportar Backup (.json)</button>
+          <label className="btn btn-bk" style={{cursor:'pointer'}}>{I.add} Restaurar Backup<input type="file" accept=".json" style={{display:'none'}} onChange={importar}/></label>
+        </div>
+      </div>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:12,marginBottom:20}}>
+        {[['👥','Pacientes',pacs.length],['📅','Agendamentos',appts.length],['📋','Prontuários',pronts.length],['📄','Laudos',laudos.length],['💰','Financeiro',fins.length]].map(([ico,lbl,val])=>(
+          <div key={lbl} className="stat-card"><div className="stat-hd"><span className="stat-lbl">{lbl}</span><span style={{fontSize:18}}>{ico}</span></div><div className="stat-val">{val}</div><div className="stat-ch">registros</div></div>
+        ))}
+      </div>
+      <div style={{padding:14,border:'1px solid #FCA5A5',borderRadius:10,background:'#FFF5F5'}}>
+        <div style={{fontSize:13,fontWeight:700,color:'var(--red)',marginBottom:4}}>⚠️ Zona de Perigo</div>
+        <div style={{fontSize:12,color:'#B91C1C',marginBottom:10}}>Irreversível. Exporte um backup antes.</div>
+        <button className="btn btn-da" onClick={limpar}>🗑 Apagar Todos os Dados</button>
+      </div>
+    </div>
+  );
+};
+
+// ── APP ──
+const App=()=>{
+  const[pg,setPg]=useState('dashboard');
+  const[pacs,setPacs,pacsOk,onlinePacs]=useFirebaseDB('pacientes',SEED_PACS);
+  const[appts,setAppts,apptsOk,onlineAppts]=useFirebaseDB('agendamentos',SEED_APPTS);
+  const[laudos,setLaudos,laudosOk,onlineLaudos]=useFirebaseDB('laudos',SEED_LAUDOS);
+  const[pronts,setPronts,prontsOk,onlinePronts]=useFirebaseDB('prontuarios',SEED_PRONT);
+  const[fins,setFins,finsOk,onlineFins]=useFirebaseDB('financeiro',SEED_FIN);
+  const toast=useToast();
+  const online=onlinePacs&&onlineAppts&&onlineLaudos&&onlinePronts&&onlineFins;
+
+  if(fbError){
+    return(
+      <div style={{display:'flex',alignItems:'center',justifyContent:'center',minHeight:'100vh',padding:20}}>
+        <div className="firebase-setup">
+          <div className="setup-title">⚙️ Configure seu Firebase</div>
+          <div className="setup-text">Para usar o ClinicPro com dados em nuvem, configure suas credenciais do Firebase Firestore:</div>
+          <div className="setup-code">
+// Abra este arquivo HTML com um editor<br/>
+// Procure por firebaseConfig e substitua:<br/>
+<br/>
+const firebaseConfig={'{'}<br/>
+&nbsp;&nbsp;apiKey: "seu_api_key",<br/>
+&nbsp;&nbsp;authDomain: "seu_projeto.firebaseapp.com",<br/>
+&nbsp;&nbsp;projectId: "seu_projeto",<br/>
+&nbsp;&nbsp;storageBucket: "seu_projeto.appspot.com",<br/>
+&nbsp;&nbsp;messagingSenderId: "123456789",<br/>
+&nbsp;&nbsp;appId: "1:123456789:web:abc123def456"<br/>
+{'}'}
+          </div>
+          <div style={{padding:12,background:'var(--bg)',borderRadius:8,fontSize:12,marginBottom:20}}>
+            <strong>Passos:</strong><br/>
+            1. Acesse firebase.google.com<br/>
+            2. Crie um novo projeto<br/>
+            3. Ative Firestore Database (modo teste)<br/>
+            4. Vá em Configurações do Projeto<br/>
+            5. Copie suas credenciais (Web)<br/>
+            6. Cole aqui neste arquivo<br/>
+            7. Salve e recarregue
+          </div>
+          <button className="btn btn-pr" onClick={()=>window.open('https://firebase.google.com','_blank')}>Ir para Firebase</button>
+        </div>
+      </div>
+    );
+  }
+
+  if(!pacsOk||!apptsOk||!laudosOk||!prontsOk||!finsOk){
+    return(
+      <div className="loading">
+        <div className="loading-sp"/>
+        <div style={{fontSize:14,fontWeight:600,color:'var(--t2)'}}>Carregando ClinicPro v2...</div>
+      </div>
+    );
+  }
+
+  const nav=[
+    {sec:'Principal',items:[
+      {k:'dashboard',lbl:'Dashboard',ico:I.dash},
+      {k:'pacientes',lbl:'Pacientes',ico:I.pats},
+      {k:'agendamentos',lbl:'Agendamentos',ico:I.cal},
+    ]},
+    {sec:'Clínico',items:[
+      {k:'prontuario',lbl:'Prontuário Eletrônico',ico:I.pront},
+      {k:'laudos',lbl:'Laudos e Exames',ico:I.file},
+      {k:'historico',lbl:'Histórico',ico:I.hist},
+    ]},
+    {sec:'Gestão',items:[
+      {k:'financeiro',lbl:'Financeiro',ico:I.fin},
+      {k:'backup',lbl:'Backup de Dados',ico:I.bkup},
+    ]},
+  ];
+
+  const titles={
+    dashboard:{t:'Dashboard',s:'Visão geral da clínica'},
+    pacientes:{t:'Pacientes',s:`${pacs.length} cadastrado(s)`},
+    agendamentos:{t:'Agendamentos',s:'Gerencie sua agenda'},
+    prontuario:{t:'Prontuário Eletrônico',s:'Registros clínicos com SOAP'},
+    laudos:{t:'Laudos e Exames',s:'Documentos e resultados'},
+    historico:{t:'Histórico do Paciente',s:'Linha do tempo por paciente'},
+    financeiro:{t:'Financeiro',s:'Controle de receitas e despesas'},
+    backup:{t:'Backup de Dados',s:'Exportar, importar e proteger seus dados'},
+  };
+
+  return(
+    <div className="app">
+      <aside className="sidebar">
+        <div className="sb-logo">
+          <div><div className="logo-t">ClinicPro<span className="logo-badge">v2</span></div></div>
+          <div className="logo-s">Sistema de Gestão Médica</div>
+        </div>
+        <nav className="sb-nav">
+          {nav.map(({sec,items})=>(
+            <div key={sec}>
+              <div className="nav-sec">{sec}</div>
+              {items.map(({k,lbl,ico})=>(
+                <div key={k} className={`nav-item ${pg===k?'active':''}`} onClick={()=>setPg(k)}>
+                  {ico}<span style={{flex:1}}>{lbl}</span>
+                </div>
+              ))}
+            </div>
+          ))}
+        </nav>
+        <div className="sb-footer">
+          <div className="sync-status">
+            <span className={`sync-dot ${online?'':'offline'}`}></span>
+            <span style={{fontSize:10}}>{online?'Sincronizado':'Offline'}</span>
+          </div>
+          <div className="sb-user" style={{marginTop:8}}>
+            <div className="u-avatar">Dr</div>
+            <div><div className="u-name">Dr. Admin</div><div className="u-role">Proprietário</div></div>
+          </div>
+        </div>
+      </aside>
+      <main className="main">
+        <div className="topbar">
+          <div><div className="pg-title">{titles[pg].t}</div><div className="pg-sub">{titles[pg].s}</div></div>
+          <span style={{fontSize:12,color:'var(--t3)',whiteSpace:'nowrap'}}>{new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'})}</span>
+        </div>
+        <div className="content">
+          {pg==='dashboard'&&<Dashboard pacs={pacs} appts={appts} laudos={laudos} pronts={pronts} fins={fins} online={online}/>}
+          {pg==='pacientes'&&<PacsView pacs={pacs} setPacs={setPacs} toast={toast}/>}
+          {pg==='agendamentos'&&<AgtsView pacs={pacs} appts={appts} setAppts={setAppts} toast={toast}/>}
+          {pg==='prontuario'&&<ProntuarioView pacs={pacs} pronts={pronts} setPronts={setPronts} toast={toast}/>}
+          {pg==='laudos'&&<LaudosView pacs={pacs} laudos={laudos} setLaudos={setLaudos} toast={toast}/>}
+          {pg==='historico'&&<HistView pacs={pacs} appts={appts} laudos={laudos} pronts={pronts}/>}
+          {pg==='financeiro'&&<FinanceiroView pacs={pacs} fins={fins} setFins={setFins} toast={toast}/>}
+          {pg==='backup'&&<BackupView pacs={pacs} appts={appts} laudos={laudos} pronts={pronts} fins={fins} setPacs={setPacs} setAppts={setAppts} setLaudos={setLaudos} setPronts={setPronts} setFins={setFins} toast={toast}/>}
+        </div>
+      </main>
+      <Toast ts={toast.ts}/>
+    </div>
+  );
+};
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
